@@ -11,12 +11,13 @@ import { Device } from '@ionic-native/device/ngx';
 import { HttpClientModule } from '@angular/common/http';
 import { SQLite } from '@ionic-native/sqlite/ngx';
 import { BatteryStatus } from '@ionic-native/battery-status/ngx';
+import { BackgroundMode } from '@ionic-native/background-mode/ngx';
 
 @NgModule({
   declarations: [AppComponent],
   entryComponents: [],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, HttpClientModule,],
-  providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }, Geolocation, Device, SQLite, BatteryStatus],
+  providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }, Geolocation, Device, SQLite, BatteryStatus, BackgroundMode],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
