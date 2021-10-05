@@ -81,14 +81,11 @@ export class FolderPage implements OnInit {
 
     App.addListener('appStateChange', ({ isActive }) => {
       console.log('App state changed. Is active?', isActive);
-      if(!isActive){
-        let taskId = BackgroundTask.beforeExit(async () => {
-          // We will be using this function to get geolocation.
-          let location = await this.getCurrentPosition(); 
-        });
-      }else{
-        this.getLocation(31);
-      }
+      // if(!isActive){
+        
+      // }else{
+      //   this.getLocation(31);
+      // }
     });
 
     // const config: BackgroundGeolocationConfig = {
