@@ -1,0 +1,6 @@
+{
+	"appId": "io.ionic.starter",
+	"appName": "mTrax-Tracking",
+	"webDir": "www",
+	"bundledWebRuntime": false
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mTrax-Tracking",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular",
+  "id": "c8298fda"
+}
