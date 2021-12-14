@@ -1,17 +1,22 @@
-import { Component, OnInit, Input, ViewChild, ElementRef} from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { IonContent, Platform } from '@ionic/angular';
-import { Geolocation } from '@ionic-native/geolocation/ngx';
-import { Device } from '@ionic-native/device/ngx';
+import { BackgroundGeolocation, BackgroundGeolocationConfig, BackgroundGeolocationEvents, BackgroundGeolocationResponse } from '@ionic-native/background-geolocation/ngx';
+import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from './../../environments/environment';
+import { IonContent, Platform } from '@ionic/angular';
 import { SQLite, SQLiteObject } from '@ionic-native/sqlite/ngx';
-import { BatteryStatus } from '@ionic-native/battery-status/ngx';
-// import { App } from '@capacitor/app';
-// import { BackgroundGeolocation, BackgroundGeolocationConfig, BackgroundGeolocationEvents, BackgroundGeolocationResponse } from '@ionic-native/background-geolocation/ngx';
+
+import { ActivatedRoute } from '@angular/router';
 import { App } from '@capacitor/app';
 import { BackgroundMode } from '@ionic-native/background-mode/ngx';
+import { BatteryStatus } from '@ionic-native/battery-status/ngx';
+import { Device } from '@ionic-native/device/ngx';
+import { Geolocation } from '@ionic-native/geolocation/ngx';
+import { Observable } from 'rxjs';
+import { environment } from './../../environments/environment';
+
+// import { App } from '@capacitor/app';
+
+
+
 
 declare var google;
 
@@ -75,8 +80,8 @@ export class FolderPage implements OnInit {
     {'vehicleDisconnect': 35},
   ];
   IsFirstRecords: boolean = true;
-
-  constructor(private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
+  
+  constructor(public backgroundGeolocation: BackgroundGeolocation, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
     this.backgroundMode.enable();
 
     App.addListener('appStateChange', ({ isActive }) => {
@@ -88,45 +93,45 @@ export class FolderPage implements OnInit {
       // }
     });
 
-    // const config: BackgroundGeolocationConfig = {
-    // //   desiredAccuracy: 10,
-    // //   stationaryRadius: 20,
-    // //   distanceFilter: 30,
-    //   debug: true, //  enable this hear sounds for background-geolocation life-cycle.
-    //   stopOnTerminate: false, // enable this to clear background location settings when the app terminates
-    // };
+    const config: BackgroundGeolocationConfig = {
+    //   desiredAccuracy: 10,
+    //   stationaryRadius: 20,
+    //   distanceFilter: 30,
+      debug: true, //  enable this hear sounds for background-geolocation life-cycle.
+      stopOnTerminate: false, // enable this to clear background location settings when the app terminates
+    };
 
-    // this.backgroundGeolocation.configure(config)
-    // .then(() => {
+    this.backgroundGeolocation.configure(config)
+    .then(() => {
 
-    // this.backgroundGeolocation.on(BackgroundGeolocationEvents.location).subscribe((location: BackgroundGeolocationResponse) => {
-    // console.log(location);
-    //   alert('bg location')
-    // // IMPORTANT:  You must execute the finish method here to inform the native plugin that you're finished,
-    // // and the background-task may be completed.  You must do this regardless if your operations are successful or not.
-    // // IF YOU DON'T, ios will CRASH YOUR APP for spending too much time in the background.
-    // //this.backgroundGeolocation.finish(); // FOR IOS ONLY
-    // });
+      this.backgroundGeolocation.on(BackgroundGeolocationEvents.location).subscribe((location: BackgroundGeolocationResponse) => {
+        console.log(location);
+        alert('bg location')
+        // IMPORTANT:  You must execute the finish method here to inform the native plugin that you're finished,
+        // and the background-task may be completed.  You must do this regardless if your operations are successful or not.
+        // IF YOU DON'T, ios will CRASH YOUR APP for spending too much time in the background.
+        //this.backgroundGeolocation.finish(); // FOR IOS ONLY
+      });
 
-    // });
+    });
 
-    // // start recording location
-    // this.backgroundGeolocation.start();
+    // start recording location
+    this.backgroundGeolocation.start();
   }
   
   ngOnInit() {
     this.getTrackLocation();
     // watch change in battery status
-    // const subscription = this.batteryStatus.onChange().subscribe(status => {
-    //   this.deviceBatteryStatus = status;
-    //   if(status.level <= this.minimumBattery){
-    //     this.getLocation(25);
-    //   }else if(status.isPlugged){
-    //     this.getLocation(26);
-    //   }else if(!status.isPlugged){
-    //     this.getLocation(27);
-    //   }
-    // });
+    const subscription = this.batteryStatus.onChange().subscribe(status => {
+      this.deviceBatteryStatus = status;
+      if(status.level <= this.minimumBattery){
+        this.getLocation(25);
+      }else if(status.isPlugged){
+        this.getLocation(26);
+      }else if(!status.isPlugged){
+        this.getLocation(27);
+      }
+    });
   }
   
   getTrackLocation(){
