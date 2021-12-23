@@ -271,13 +271,6 @@
   dependencies:
     tslib "^2.2.0"
 
-"@awesome-cordova-plugins/background-geolocation@^5.37.3":
-  version "5.37.3"
-  resolved "https://registry.yarnpkg.com/@awesome-cordova-plugins/background-geolocation/-/background-geolocation-5.37.3.tgz#daef2bf11f8e6fcff551f33c20d0561abc12d5d1"
-  integrity sha512-4J+1d4bnhLhJy3VoNHsSbFtAycPTVuiYc3GhPTISThZw3h2VcKeeUbH2S/67i2ylTIl8Ut9kNLYvXcryVI8Eag==
-  dependencies:
-    "@types/cordova" latest
-
 "@awesome-cordova-plugins/core@^5.37.1":
   version "5.37.3"
   resolved "https://registry.yarnpkg.com/@awesome-cordova-plugins/core/-/core-5.37.3.tgz#c306d529c9c3fc2a60c34a2172e6181a2a9ba156"
@@ -1267,11 +1260,6 @@
     "@babel/helper-validator-identifier" "^7.15.7"
     to-fast-properties "^2.0.0"
 
-"@capacitor-community/background-geolocation@1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@capacitor-community/background-geolocation/-/background-geolocation-1.0.4.tgz#1b5770c6d2589cbbd23e0b9fb9850bd0ca165f5f"
-  integrity sha512-W5ytGSRJY0qx4RFwJ7pYZfoAgoXgbh78pxYQoLiZmeFQq0stgR3eTbBrSMN1z+HnkXmkg+5xxmLt+o5/dl4mrQ==
-
 "@capacitor/android@3.2.5":
   version "3.2.5"
   resolved "https://registry.yarnpkg.com/@capacitor/android/-/android-3.2.5.tgz#fd16b60a03bf15c9c59e118daf5068b93c39438c"
@@ -1545,11 +1533,6 @@
     merge-source-map "^1.1.0"
     schema-utils "^2.7.0"
 
-"@mauron85/cordova-plugin-background-geolocation@^3.1.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@mauron85/cordova-plugin-background-geolocation/-/cordova-plugin-background-geolocation-3.1.0.tgz#137d6c7554eb09a470623e23b7cbd68c95a55d8d"
-  integrity sha512-ZZDwkO5m0Bbi8VDJsO3ssBgXrgCiu43/kOBvSneh5djIFyRrQZJbj6IMNt/hP7F/m7Pmw0x7F5ASXjPMwjEAjg==
-
 "@ngtools/webpack@12.1.4":
   version "12.1.4"
   resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-12.1.4.tgz#9f7ac5e26b366831b50558bf71dd6e1689743def"
@@ -1670,6 +1653,11 @@
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
+
+"@transistorsoft/capacitor-background-fetch@^0.0.6":
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/@transistorsoft/capacitor-background-fetch/-/capacitor-background-fetch-0.0.6.tgz#3713a63e74a6c0d69c0eac7594e623cf34bd6c1f"
+  integrity sha512-MnaPPuEzEty8jjnrd2blrifTG++/DrLeAcyxn8r42VYWD7p5Gv3xbNxOM81XOsLj1GpTJ571+msq8R7Z+gdqFg==
 
 "@trysound/sax@0.2.0":
   version "0.2.0"

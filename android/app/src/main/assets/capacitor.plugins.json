@@ -1,9 +1,5 @@
 [
 	{
-		"pkg": "@capacitor-community/background-geolocation",
-		"classpath": "com.equimaps.capacitor_background_geolocation.BackgroundGeolocation"
-	},
-	{
 		"pkg": "@capacitor/app",
 		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
 	},
@@ -22,5 +18,9 @@
 	{
 		"pkg": "@capacitor/status-bar",
 		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
+	},
+	{
+		"pkg": "@transistorsoft/capacitor-background-fetch",
+		"classpath": "com.transistorsoft.bgfetch.capacitor.BackgroundFetchPlugin"
 	}
 ]
