@@ -10,8 +10,8 @@
         "Background Tracking".
     -->
     <string name="capacitor_background_geolocation_notification_channel_name">
-          Background Tracking
-      </string>
+        Background Tracking
+    </string>
 
     <!--
         The icon to use for the background notification. Note the absence of a
@@ -25,4 +25,8 @@
     <string name="capacitor_background_geolocation_notification_icon">
           drawable/ic_tracking
     </string>
+
+    <string name="mauron85_bgloc_account_name">$ACCOUNT_NAME</string>
+    <string name="mauron85_bgloc_account_type">$ACCOUNT_TYPE</string>
+    <string name="mauron85_bgloc_content_authority">$CONTENT_AUTHORITY</string>
 </resources>

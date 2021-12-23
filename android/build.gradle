@@ -3,6 +3,12 @@
 buildscript {
     
     repositories {
+
+        // Add below lines of code 
+        maven {
+            url 'https://dl.google.com/dl/android/maven2'
+        }
+        // End code
         google()
         jcenter()
     }

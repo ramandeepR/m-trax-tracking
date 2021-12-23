@@ -1,5 +1,6 @@
 // import { BackgroundGeolocation, BackgroundGeolocationConfig, BackgroundGeolocationEvents, BackgroundGeolocationResponse } from '@ionic-native/background-geolocation/ngx';
 
+import { BackgroundGeolocation, BackgroundGeolocationConfig, BackgroundGeolocationEvents, BackgroundGeolocationResponse } from '@awesome-cordova-plugins/background-geolocation/ngx';
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { IonContent, Platform } from '@ionic/angular';
@@ -21,7 +22,8 @@ import {registerPlugin} from "@capacitor/core";
 
 
 
-const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
+
+//const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
 
 
 declare var google;
@@ -33,6 +35,7 @@ declare var google;
   styleUrls: ['./folder.page.scss'],
 })
 export class FolderPage implements OnInit {
+
   @ViewChild('map', { static: false }) mapElement: ElementRef;
   @ViewChild(IonContent, { static: false }) content: IonContent;
   lastHeading: any;
@@ -87,7 +90,10 @@ export class FolderPage implements OnInit {
   ];
   IsFirstRecords: boolean = true;
   intervalID: any;
-  constructor(public foregroundService: ForegroundService, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
+
+  temp:any;
+
+  constructor(private backgroundGeolocation: BackgroundGeolocation, public foregroundService: ForegroundService, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
     this.backgroundMode.enable();
     let self = this;
 
@@ -106,89 +112,151 @@ export class FolderPage implements OnInit {
       }
     });
 
-    BackgroundGeolocation.addWatcher(
-      {
-          // If the "backgroundMessage" option is defined, the watcher will
-          // provide location updates whether the app is in the background or the
-          // foreground. If it is not defined, location updates are only
-          // guaranteed in the foreground. This is true on both platforms.
-  
-          // On Android, a notification must be shown to continue receiving
-          // location updates in the background. This option specifies the text of
-          // that notification.
-          backgroundMessage: "Cancel to prevent battery drain.",
-  
-          // The title of the notification mentioned above. Defaults to "Using
-          // your location".
-          backgroundTitle: "Tracking You.",
-  
-          // Whether permissions should be requested from the user automatically,
-          // if they are not already granted. Defaults to "true".
-          requestPermissions: true,
-  
-          // If "true", stale locations may be delivered while the device
-          // obtains a GPS fix. You are responsible for checking the "time"
-          // property. If "false", locations are guaranteed to be up to date.
-          // Defaults to "false".
-          stale: false,
-  
-          // The minimum number of metres between subsequent locations. Defaults
-          // to 0.
-          distanceFilter: 0
+    let config: BackgroundGeolocationConfig = {
+      // locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
+      // desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
+      stationaryRadius: 1,
+      distanceFilter: 1,
+      notificationTitle: 'Background Tracking',
+      notificationText: 'Enabled',
+      debug: true,
+      interval: 1000,
+      fastestInterval: 500,
+      activitiesInterval: 1000,
+      url: environment.webServiceUrl,
+      httpHeaders: {
+        'X-FOO': 'bar'
       },
-      function callback(location, error) {
-          if (error) {
-              if (error.code === "NOT_AUTHORIZED") {
-                  if (window.confirm(
-                      "This app needs your location, " +
-                      "but does not have permission.\n\n" +
-                      "Open settings now?"
-                  )) {
-                      // It can be useful to direct the user to their device's
-                      // settings when location permissions have been denied. The
-                      // plugin provides the 'openSettings' method to do exactly
-                      // this.
-                      BackgroundGeolocation.openSettings();
-                  }
-              }
-              return console.error(error);
-          }
-          
-          let dict = {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            speed: location.speed == null ? 0 : location.speed.toFixed(1),
-            headingDelta: self.calculateHeading(self.lastHeading, location.bearing),
-            actualHeading: location.bearing,
-            time: location.time,
-            distance: 0,
-            reason: 1//resp.coords.speed <= 1 ? '4' : '3'
-          }
-
-          let locationDict = {
-            coords: {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              speed: location.speed == null ? 0 : location.speed.toFixed(1),
-              heading: self.calculateHeading(self.lastHeading, location.bearing),
-            },
-            timestamp: location.time,
-            distance: 0,
-            reason: 1//resp.coords.speed <= 1 ? '4' : '3'
-          }
-          
-
-          self.implementConditions(dict, locationDict);
-
-          return console.log(location);
+      // customize post properties
+      postTemplate: {
+        lat: '@latitude',
+        lon: '@longitude',
+        timestamp: '@time',
+        t1: this.temp,
+        t2: '',
+        speed: '@speed',
+        reason: 'bg',
+        version: '1',
+        imei: this.device.uuid,
+        data: '',  
+        driverID: '',
+        heading: 0,// dict.actualHeading === null ? 0 : dict.actualHeading.toFixed(1),
+        lastHeading: this.lastHeading === null ? 0 : this.lastHeading,
       }
-  ).then(function after_the_watcher_has_been_added(watcher_id) {
-      // When a watcher is no longer needed, it should be removed by calling
-      // 'removeWatcher' with an object containing its ID.
-      BackgroundGeolocation.removeWatcher({
-          id: watcher_id
+    };
+
+  
+    this.backgroundGeolocation.configure(config)
+    .then(() => {
+
+      this.backgroundGeolocation.on(BackgroundGeolocationEvents.location).subscribe((location: BackgroundGeolocationResponse) => {
+        console.log(location);
+        this.temp = location;
+        // IMPORTANT:  You must execute the finish method here to inform the native plugin that you're finished,
+        // and the background-task may be completed.  You must do this regardless if your operations are successful or not.
+        // IF YOU DON'T, ios will CRASH YOUR APP for spending too much time in the background.
+        //this.backgroundGeolocation.finish(); // FOR IOS ONLY
       });
-  });
+
+      this.backgroundGeolocation.headlessTask(function(event) {
+        if (event.name === 'location' ||
+          event.name === 'stationary') {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', environment.webServiceUrl);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(event.params));
+        }
+    
+        return 'Processing event: ' + event.name; // will be logged
+      });
+    });
+
+    // start recording location
+    this.backgroundGeolocation.start();
+
+  //   BackgroundGeolocation.addWatcher(
+  //     {
+  //         // If the "backgroundMessage" option is defined, the watcher will
+  //         // provide location updates whether the app is in the background or the
+  //         // foreground. If it is not defined, location updates are only
+  //         // guaranteed in the foreground. This is true on both platforms.
+  
+  //         // On Android, a notification must be shown to continue receiving
+  //         // location updates in the background. This option specifies the text of
+  //         // that notification.
+  //         backgroundMessage: "Cancel to prevent battery drain.",
+  
+  //         // The title of the notification mentioned above. Defaults to "Using
+  //         // your location".
+  //         backgroundTitle: "Tracking You.",
+  
+  //         // Whether permissions should be requested from the user automatically,
+  //         // if they are not already granted. Defaults to "true".
+  //         requestPermissions: true,
+  
+  //         // If "true", stale locations may be delivered while the device
+  //         // obtains a GPS fix. You are responsible for checking the "time"
+  //         // property. If "false", locations are guaranteed to be up to date.
+  //         // Defaults to "false".
+  //         stale: false,
+  
+  //         // The minimum number of metres between subsequent locations. Defaults
+  //         // to 0.
+  //         distanceFilter: 0
+  //     },
+  //     function callback(location, error) {
+  //         if (error) {
+  //             if (error.code === "NOT_AUTHORIZED") {
+  //                 if (window.confirm(
+  //                     "This app needs your location, " +
+  //                     "but does not have permission.\n\n" +
+  //                     "Open settings now?"
+  //                 )) {
+  //                     // It can be useful to direct the user to their device's
+  //                     // settings when location permissions have been denied. The
+  //                     // plugin provides the 'openSettings' method to do exactly
+  //                     // this.
+  //                     BackgroundGeolocation.openSettings();
+  //                 }
+  //             }
+  //             return console.error(error);
+  //         }
+          
+  //         let dict = {
+  //           latitude: location.latitude,
+  //           longitude: location.longitude,
+  //           speed: location.speed == null ? 0 : location.speed.toFixed(1),
+  //           headingDelta: self.calculateHeading(self.lastHeading, location.bearing),
+  //           actualHeading: location.bearing,
+  //           time: location.time,
+  //           distance: 0,
+  //           reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+  //         }
+
+  //         let locationDict = {
+  //           coords: {
+  //             latitude: location.latitude,
+  //             longitude: location.longitude,
+  //             speed: location.speed == null ? 0 : location.speed.toFixed(1),
+  //             heading: self.calculateHeading(self.lastHeading, location.bearing),
+  //           },
+  //           timestamp: location.time,
+  //           distance: 0,
+  //           reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+  //         }
+          
+
+  //         self.implementConditions(dict, locationDict);
+
+  //         return console.log(location);
+  //     }
+  // ).then(function after_the_watcher_has_been_added(watcher_id) {
+  //     // When a watcher is no longer needed, it should be removed by calling
+  //     // 'removeWatcher' with an object containing its ID.
+  //     BackgroundGeolocation.removeWatcher({
+  //         id: watcher_id
+  //     });
+  // });
       
   }
 
@@ -284,7 +352,7 @@ export class FolderPage implements OnInit {
       }
 
       if(dict.reason != 4) { this.timeoutFunction(); }
-      console.log(dict)
+      //console.log(dict)
       //if reason 1 (location) don't need to track events & data
       if(dict.reason == 1) { return}; 
       this.generateFinalPacket(dict);
@@ -324,7 +392,7 @@ export class FolderPage implements OnInit {
       driverID: ''
     };
     console.log(finalDict)
-    return;
+    // return;
     //recording last values here
     this.lastHeading = dict.actualHeading;
     this.lastSpeed = dict.speed;
