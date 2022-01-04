@@ -1,0 +1,6 @@
+{
+	"appId": "com.mTrax.tracking",
+	"appName": "mTrax-Tracking",
+	"webDir": "www",
+	"bundledWebRuntime": false
+}
