@@ -1,17 +1,27 @@
-// import { BackgroundGeolocation, BackgroundGeolocationConfig, BackgroundGeolocationEvents, BackgroundGeolocationResponse } from '@ionic-native/background-geolocation/ngx';
-
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import BackgroundGeolocation, {
+  AuthorizationEvent,
+  ConnectivityChangeEvent,
+  GeofenceEvent,
+  HttpEvent,
+  Location,
+  MotionActivityEvent,
+  MotionChangeEvent,
+  ProviderChangeEvent,
+  Subscription,
+  TransistorAuthorizationToken
+} from "@transistorsoft/capacitor-background-geolocation";
+import { Component, ElementRef, Input, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { IonContent, Platform } from '@ionic/angular';
-import { SQLite, SQLiteObject } from '@ionic-native/sqlite/ngx';
+import { SQLite, SQLiteObject } from '@awesome-cordova-plugins/sqlite/ngx';
 
 import { ActivatedRoute } from '@angular/router';
 import { App } from '@capacitor/app';
-import { BackgroundMode } from '@ionic-native/background-mode/ngx';
-import { BatteryStatus } from '@ionic-native/battery-status/ngx';
-import { Device } from '@ionic-native/device/ngx';
+import { BackgroundMode } from '@awesome-cordova-plugins/background-mode/ngx';
+import { BatteryStatus } from '@awesome-cordova-plugins/battery-status/ngx';
+import { Device } from '@awesome-cordova-plugins/device/ngx';
 import { ForegroundService } from '@awesome-cordova-plugins/foreground-service/ngx';
-import { Geolocation } from '@ionic-native/geolocation/ngx';
+import { Geolocation } from '@awesome-cordova-plugins/geolocation/ngx';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
 import {registerPlugin} from "@capacitor/core";
@@ -82,8 +92,12 @@ export class FolderPage implements OnInit {
   intervalID: any;
 
   temp:any;
+  ready:boolean = false;
+  enabled:boolean = false;
+  events:any = [];
+  subscriptions:Subscription[] = [];
 
-  constructor(public foregroundService: ForegroundService, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
+  constructor(private zone:NgZone, public backgroundGeolocation: BackgroundGeolocation , public foregroundService: ForegroundService, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
     this.backgroundMode.enable();
     let self = this;
 
@@ -100,10 +114,188 @@ export class FolderPage implements OnInit {
         clearInterval(this.intervalID);
         this.getLocation(31);
       }
+      console.log('events')
+      console.log(this.events)
     });
 
   }
+  
+  subscribe(subscription:Subscription) {
+    this.subscriptions.push(subscription);
+  }
 
+  unsubscribe() {
+    this.subscriptions.forEach((subscription) => subscription.remove() );
+    this.subscriptions = [];
+  }
+  
+  ngAfterContentInit() {
+    console.log('⚙️ ngAfterContentInit');
+    this.configureBackgroundGeolocation();
+  }
+
+  async configureBackgroundGeolocation() {
+    // // Step 1:  Listen to BackgroundGeolocation events.
+    // this.subscribe(BackgroundGeolocation.onEnabledChange(this.onEnabledChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onLocation(this.onLocation.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onMotionChange(this.onMotionChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onGeofence(this.onGeofence.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onActivityChange(this.onActivityChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onHttp(this.onHttp.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onProviderChange(this.onProviderChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onPowerSaveChange(this.onPowerSaveChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onConnectivityChange(this.onConnectivityChange.bind(this)));
+    // this.subscribe(BackgroundGeolocation.onAuthorization(this.onAuthorization.bind(this)));
+
+    BackgroundGeolocation.onLocation((location) => {
+      console.log('[onLocation]', location);
+      
+         console.log('Update Coords');
+        const param = {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+          'msg': 'bg'
+        }
+        this.CallAjax(param)
+      .subscribe((response) => {
+        console.log(response);
+      });
+      
+    }, ((error) => {  // <-- Location errors
+      console.log('[onLocation] ERROR:', error);
+    }));
+
+    // This handler fires when movement states changes (stationary->moving; moving->stationary)
+    BackgroundGeolocation.onMotionChange((location) => {
+      console.log('[onMotionChange]', location);
+     
+         console.log('Update Coords');
+        const param = {
+          lat: location.location.coords.latitude,
+          lng: location.location.coords.longitude,
+          'msg': 'bg'
+       }
+       this.CallAjax(param)
+      .subscribe((response) => {
+        console.log(response);
+      });
+      
+    });
+    // Step 2:  Configure the plugin
+    BackgroundGeolocation.ready({
+      reset: true,
+      debug: true,
+      logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
+      desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
+      locationAuthorizationRequest: 'Always',
+      // distanceFilter: 10,
+      autoSync: true,
+      stopOnTerminate: false,
+      startOnBoot: true,
+      stopOnStationary: false, 
+      stopTimeout: 60,
+      distanceFilter: 0,            // Must be 0 or locationUpdateInterval is ignored!
+    locationUpdateInterval: 10000  // Get a location every 5 seconds
+    }).then((state) => {
+      // Update UI state (toggle switch, changePace button)
+      this.addEvent('State', new Date(), state);
+      this.zone.run(() => {
+        this.enabled = state.enabled;
+      });
+    });
+  }
+
+  /// When view is destroyed, be sure to .remove() all BackgroundGeolocation
+  /// event-subscriptions.
+  ngOnDestroy() {
+    this.subscriptions.forEach((subscription:Subscription) => {
+      subscription.remove();
+    })
+  }
+
+   // Change plugin state between stationary / tracking
+   onClickChangePace() {
+   // this.isMoving = !this.isMoving;
+    BackgroundGeolocation.changePace(true);
+  }
+
+  // Clear the list of events from ion-list
+  onClickClear() {
+    this.events = [];
+  }
+
+
+  /// @event enabledchange
+  onEnabledChange(enabled:boolean) {
+   // this.isMoving = false;
+    this.addEvent('onEnabledChange', new Date(), {enabled: enabled});
+  }
+
+  /// @event location
+  onLocation(location:Location) {
+    console.log('[event] location: ', location);
+    this.addEvent('onLocation', new Date(location.timestamp), location);
+
+  }
+
+  /// @event motionchange
+  onMotionChange(event:MotionChangeEvent) {
+    console.log('[event] motionchange, isMoving: ', event.isMoving, ', location: ', event.location);
+    this.addEvent('onMotionChange', new Date(event.location.timestamp), event);
+    //this.isMoving = event.isMoving;
+  }
+
+  /// @event activitychange
+  onActivityChange(event:MotionActivityEvent) {
+    console.log('[event] activitychange: ', event);
+    this.addEvent('onActivityChange', new Date(), event);
+  }
+
+  /// @event geofence
+  onGeofence(event:GeofenceEvent) {
+    console.log('[event] geofence: ', event);
+    this.addEvent('onGeofence', new Date(event.location.timestamp), event);
+  }
+  /// @event http
+  onHttp(response:HttpEvent) {
+    console.log('[event] http: ', response);
+    this.addEvent('onHttp', new Date(), response);
+  }
+
+  /// @event providerchange
+  onProviderChange(provider:ProviderChangeEvent) {
+    console.log('[event] providerchange', provider);
+    this.addEvent('onProviderChange', new Date(), provider);
+  }
+
+  /// @event powersavechange
+  onPowerSaveChange(isPowerSaveEnabled:boolean) {
+    console.log('[event] powersavechange', isPowerSaveEnabled);
+    this.addEvent('onPowerSaveChange', new Date(), {isPowerSaveEnabled: isPowerSaveEnabled});
+  }
+  /// @event connectivitychange
+  onConnectivityChange(event:ConnectivityChangeEvent) {
+    console.log('[event] connectivitychange connected? ', event.connected);
+    this.addEvent('onConnectivityChange', new Date(), event);
+  }
+
+  /// @event authorization
+  onAuthorization(event:AuthorizationEvent) {
+    console.log('[event] authorization: ', event);
+  }
+
+  /// Add a record to ion-list
+  private addEvent(name, date, event) {
+    const timestamp = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    this.zone.run(() => {
+      this.events.push({
+        name: name,
+        timestamp: timestamp,
+        object: event,
+        content: JSON.stringify(event, null, 2)
+      });
+    })
+  }
   startService() {
     // Notification importance is optional, the default is 1 - Low (no sound or vibration)
     this.foregroundService.start('GPS Running', 'Background Service', 'drawable/fsicon');

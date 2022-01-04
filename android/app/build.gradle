@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+Project background_geolocation = project(':transistorsoft-capacitor-background-geolocation')
+apply from: "${background_geolocation.projectDir}/app.gradle"
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -19,6 +21,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles "${background_geolocation.projectDir}/proguard-rules.pro"
         }
     }
 }
@@ -37,6 +40,9 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation 'com.android.support:support-v4:28.0.0'
+
+
 }
 
 apply from: 'capacitor.build.gradle'

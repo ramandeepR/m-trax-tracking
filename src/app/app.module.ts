@@ -1,18 +1,18 @@
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
+import { SQLite, SQLiteObject } from '@awesome-cordova-plugins/sqlite/ngx';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import BackgroundGeolocation from "@transistorsoft/capacitor-background-geolocation";
-import { BackgroundMode } from '@ionic-native/background-mode/ngx';
-import { BatteryStatus } from '@ionic-native/battery-status/ngx';
+import { BackgroundMode } from '@awesome-cordova-plugins/background-mode/ngx';
+import { BatteryStatus } from '@awesome-cordova-plugins/battery-status/ngx';
 import { BrowserModule } from '@angular/platform-browser';
-import { Device } from '@ionic-native/device/ngx';
+import { Device } from '@awesome-cordova-plugins/device/ngx';
 import { ForegroundService } from '@awesome-cordova-plugins/foreground-service/ngx';
-import { Geolocation } from '@ionic-native/geolocation/ngx';
+import { Geolocation } from '@awesome-cordova-plugins/geolocation/ngx';
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { RouteReuseStrategy } from '@angular/router';
-import { SQLite } from '@ionic-native/sqlite/ngx';
 
 @NgModule({
   declarations: [AppComponent],
