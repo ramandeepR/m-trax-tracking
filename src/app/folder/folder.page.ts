@@ -106,10 +106,10 @@ export class FolderPage implements OnInit {
       console.log('App state changed. Is active?', isActive);
       if(!isActive){
 
-        // self.startService();
-        // self.intervalID = setInterval(function(){
-        //   self.getBackgroundLocationWhenAppInActive();
-        // }, 2000)
+        self.startService();
+        self.intervalID = setInterval(function(){
+          self.getBackgroundLocationWhenAppInActive();
+        }, 2000)
       }else{
         clearInterval(this.intervalID);
         this.getLocation(31);
@@ -135,17 +135,6 @@ export class FolderPage implements OnInit {
   }
 
   async configureBackgroundGeolocation() {
-    // // Step 1:  Listen to BackgroundGeolocation events.
-    // this.subscribe(BackgroundGeolocation.onEnabledChange(this.onEnabledChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onLocation(this.onLocation.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onMotionChange(this.onMotionChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onGeofence(this.onGeofence.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onActivityChange(this.onActivityChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onHttp(this.onHttp.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onProviderChange(this.onProviderChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onPowerSaveChange(this.onPowerSaveChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onConnectivityChange(this.onConnectivityChange.bind(this)));
-    // this.subscribe(BackgroundGeolocation.onAuthorization(this.onAuthorization.bind(this)));
 
     BackgroundGeolocation.onLocation((location) => {
       console.log('[onLocation]', location);
@@ -304,7 +293,13 @@ export class FolderPage implements OnInit {
 
   getBackgroundLocationWhenAppInActive(){
     let self = this;
-      
+    BackgroundGeolocation.getCurrentPosition({}).then((resp:any) => {
+      console.log(resp);
+      self.CallAjax(resp)
+      .subscribe((response) => {
+        console.log(response);
+      });
+    });
   }
   
   ngOnInit() {
