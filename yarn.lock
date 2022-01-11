@@ -1287,6 +1287,11 @@
   "resolved" "https://registry.npmjs.org/@capacitor/keyboard/-/keyboard-1.2.0.tgz"
   "version" "1.2.0"
 
+"@capacitor/network@^1.0.6":
+  "integrity" "sha512-xkkmRLlFcg1dM0WfblxKwcKFjcfBQ04yWYX0ubD/n5QfQjLCCb8GbAHlorqIyt2j4PUvSAb0ERLyL89hpKlh2w=="
+  "resolved" "https://registry.npmjs.org/@capacitor/network/-/network-1.0.6.tgz"
+  "version" "1.0.6"
+
 "@capacitor/status-bar@1.0.6":
   "integrity" "sha512-5MGWFq76iiKvHpbZ/Xc0Zig3WZyzWZ62wvC4qxak8OuVHBNG4fA1p/XXY9teQPaU3SupEJHnLkw6Gn1LuDp+ew=="
   "resolved" "https://registry.npmjs.org/@capacitor/status-bar/-/status-bar-1.0.6.tgz"
@@ -3141,6 +3146,11 @@
     "p-limit" "^3.1.0"
     "schema-utils" "^3.0.0"
     "serialize-javascript" "^5.0.1"
+
+"cordova-background-geolocation-lt@^4.4.0":
+  "integrity" "sha512-0Kadtcjh3qSVgQ87OuoKNYoQgx62+Nsa8WkBZFkVaqwzkzoizVVQGIlQVTMBjdtQtSNohATd6n7e+Od9D1g1iA=="
+  "resolved" "https://registry.npmjs.org/cordova-background-geolocation-lt/-/cordova-background-geolocation-lt-4.4.0.tgz"
+  "version" "4.4.0"
 
 "cordova-plugin-background-mode@^0.7.3":
   "integrity" "sha512-LsU1v7EgTUROaks+tcQ8TnMzVUcU/TwjDVwj2O/4e4aI2q2ldLGsiZorqKqfqvwh2HoIssmY73OwJk91hQi62w=="

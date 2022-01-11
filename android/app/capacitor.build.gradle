@@ -14,12 +14,19 @@ dependencies {
     implementation project(':capacitor-geolocation')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
+    implementation project(':capacitor-network')
     implementation project(':capacitor-status-bar')
     implementation project(':transistorsoft-capacitor-background-fetch')
     implementation project(':transistorsoft-capacitor-background-geolocation')
-
+    implementation "com.google.android.gms:play-services-location:18.+"
+    implementation "com.android.support:appcompat-v7:28.+"
+    implementation "com.squareup.okhttp3:okhttp:3.12.+"
+    implementation "org.greenrobot:eventbus:3.2.0"
+    implementation "io.github.nishkarsh:android-permissions:0.1.8"
+    implementation "org.slf4j:slf4j-api:1.7.25"
+    implementation "com.github.tony19:logback-android:2.0.0"
 }
-
+apply from: "../../node_modules/cordova-background-geolocation-lt/src/android/build.gradle"
 
 if (hasProperty('postBuildExtras')) {
   postBuildExtras()

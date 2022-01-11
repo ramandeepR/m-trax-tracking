@@ -1,15 +1,20 @@
+// You may import any optional interfaces
+
 import BackgroundGeolocation, {
-  AuthorizationEvent,
+  Config,
   ConnectivityChangeEvent,
+  Geofence,
   GeofenceEvent,
+  GeofencesChangeEvent,
+  HeartbeatEvent,
   HttpEvent,
   Location,
+  LocationError,
   MotionActivityEvent,
   MotionChangeEvent,
   ProviderChangeEvent,
-  Subscription,
-  TransistorAuthorizationToken
-} from "@transistorsoft/capacitor-background-geolocation";
+  State
+} from "cordova-background-geolocation-lt";
 import { Component, ElementRef, Input, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { IonContent, Platform } from '@ionic/angular';
@@ -22,9 +27,11 @@ import { BatteryStatus } from '@awesome-cordova-plugins/battery-status/ngx';
 import { Device } from '@awesome-cordova-plugins/device/ngx';
 import { ForegroundService } from '@awesome-cordova-plugins/foreground-service/ngx';
 import { Geolocation } from '@awesome-cordova-plugins/geolocation/ngx';
+import { Network } from '@capacitor/network';
 import { Observable } from 'rxjs';
 import { environment } from './../../environments/environment';
 import {registerPlugin} from "@capacitor/core";
+import { serializeNodes } from "@angular/compiler/src/i18n/digest";
 
 declare var google;
 
@@ -95,7 +102,9 @@ export class FolderPage implements OnInit {
   ready:boolean = false;
   enabled:boolean = false;
   events:any = [];
-  subscriptions:Subscription[] = [];
+  subscriptions = [];
+  backgroundLocationArray = [];
+  networkStatus: any;
 
   constructor(private zone:NgZone, public backgroundGeolocation: BackgroundGeolocation , public foregroundService: ForegroundService, private platform :Platform, private geolocation: Geolocation, public device: Device, private http: HttpClient, private batteryStatus: BatteryStatus, public backgroundMode: BackgroundMode) {
     this.backgroundMode.enable();
@@ -109,8 +118,12 @@ export class FolderPage implements OnInit {
         self.startService();
         self.intervalID = setInterval(function(){
           self.getBackgroundLocationWhenAppInActive();
-        }, 2000)
+        }, 4000)
       }else{
+        this.sendPacketToServer();
+        // if(this.backgroundLocationArray.length ==0){
+        //   alert('nothing for share on server;')
+        // }
         clearInterval(this.intervalID);
         this.getLocation(31);
       }
@@ -118,9 +131,30 @@ export class FolderPage implements OnInit {
       console.log(this.events)
     });
 
+    Network.addListener('networkStatusChange', status => {
+      console.log('Network status changed', status); 
+      self.networkStatus = status.connected;
+      if(status.connected){
+        self.sendPacketToServer();
+      }
+    });
+    
+
   }
+
+  //pending data in background mode
+  sendPacketToServer(){
+   if(this.networkStatus){
+     this.backgroundLocationArray.forEach(item=>{
+      this.CallAjax(item)
+      .subscribe((response) => {
+        console.log(response);
+      });
+     })
+   }
+  }Z
   
-  subscribe(subscription:Subscription) {
+  subscribe(subscription) {
     this.subscriptions.push(subscription);
   }
 
@@ -131,43 +165,111 @@ export class FolderPage implements OnInit {
   
   ngAfterContentInit() {
     console.log('⚙️ ngAfterContentInit');
-    this.configureBackgroundGeolocation();
+    //this.configureBackgroundGeolocation();
+
+    // Like any Cordova plugin, you must wait for Platform.ready() before referencing the plugin.
+    this.configureBackgroundGeolocationLT();
+  }
+
+  configureBackgroundGeolocationLT() {
+    // 1.  Listen to events.
+    let self = this;
+    BackgroundGeolocation.onLocation(resp => {
+      console.log('[location] - ', resp);
+      let dict = {
+        latitude: resp.coords.latitude,
+        longitude: resp.coords.longitude,
+        speed: resp.coords.speed == null ? 0 : resp.coords.speed.toFixed(1),
+        headingDelta: this.calculateHeading(this.lastHeading, resp.coords.heading),
+        actualHeading: resp.coords.heading,
+        time: resp.timestamp,
+        distance: 0,
+        reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+      }
+
+      self.implementConditions(dict, resp, 'bg');
+    });
+
+    BackgroundGeolocation.onMotionChange(event => {
+      console.log('[motionchange] - ', event.isMoving, event.location);
+      let resp = event.location;
+      let dict = {
+        latitude: resp.coords.latitude,
+        longitude: resp.coords.longitude,
+        speed: resp.coords.speed == null ? 0 : resp.coords.speed.toFixed(1),
+        headingDelta: this.calculateHeading(this.lastHeading, resp.coords.heading),
+        actualHeading: resp.coords.heading,
+        time: resp.timestamp,
+        distance: 0,
+        reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+      }
+
+      self.implementConditions(dict, resp, 'bg');
+    });
+
+    BackgroundGeolocation.onHttp(response => {
+      console.log('[http] - ', response.success, response.status, response.responseText);
+    });
+
+    BackgroundGeolocation.onProviderChange(event => {
+      console.log('[providerchange] - ', event.enabled, event.status, event.gps);
+    });
+
+    // 2.  Configure the plugin with #ready
+    BackgroundGeolocation.ready({
+      reset: true,
+      debug: true,
+      logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
+      desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
+      distanceFilter: 0,
+      // url: 'http://my.server.com/locations',
+      autoSync: true,
+      stopOnTerminate: false,
+      startOnBoot: true
+    }, (state) => {
+      console.log('[ready] BackgroundGeolocation is ready to use');
+      if (!state.enabled) {
+        // 3.  Start tracking.
+        BackgroundGeolocation.start();
+      }
+    });
   }
 
   async configureBackgroundGeolocation() {
+    let self = this;
+    BackgroundGeolocation.onLocation((resp:any) => {
+      let dict = {
+        latitude: resp.coords.latitude,
+        longitude: resp.coords.longitude,
+        speed: resp.coords.speed == null ? 0 : resp.coords.speed.toFixed(1),
+        headingDelta: this.calculateHeading(this.lastHeading, resp.coords.heading),
+        actualHeading: resp.coords.heading,
+        time: resp.timestamp,
+        distance: 0,
+        reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+      }
 
-    BackgroundGeolocation.onLocation((location) => {
-      console.log('[onLocation]', location);
-      
-         console.log('Update Coords');
-        const param = {
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-          'msg': 'bg'
-        }
-        this.CallAjax(param)
-      .subscribe((response) => {
-        console.log(response);
-      });
+      self.implementConditions(dict, resp, 'bg');
       
     }, ((error) => {  // <-- Location errors
       console.log('[onLocation] ERROR:', error);
     }));
 
     // This handler fires when movement states changes (stationary->moving; moving->stationary)
-    BackgroundGeolocation.onMotionChange((location) => {
-      console.log('[onMotionChange]', location);
-     
-         console.log('Update Coords');
-        const param = {
-          lat: location.location.coords.latitude,
-          lng: location.location.coords.longitude,
-          'msg': 'bg'
-       }
-       this.CallAjax(param)
-      .subscribe((response) => {
-        console.log(response);
-      });
+    BackgroundGeolocation.onMotionChange((resp:any) => {
+      console.log('[onMotionChange]', resp);
+      let dict = {
+        latitude: resp.coords.latitude,
+        longitude: resp.coords.longitude,
+        speed: resp.coords.speed == null ? 0 : resp.coords.speed.toFixed(1),
+        headingDelta: this.calculateHeading(this.lastHeading, resp.coords.heading),
+        actualHeading: resp.coords.heading,
+        time: resp.timestamp,
+        distance: 0,
+        reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+      }
+
+      self.implementConditions(dict, resp, 'bg');
       
     });
     // Step 2:  Configure the plugin
@@ -182,9 +284,9 @@ export class FolderPage implements OnInit {
       stopOnTerminate: false,
       startOnBoot: true,
       stopOnStationary: false, 
-      stopTimeout: 60,
+      stopTimeout: 20,
       distanceFilter: 0,            // Must be 0 or locationUpdateInterval is ignored!
-    locationUpdateInterval: 10000  // Get a location every 5 seconds
+      locationUpdateInterval: 10000  // Get a location every 5 seconds
     }).then((state) => {
       // Update UI state (toggle switch, changePace button)
       this.addEvent('State', new Date(), state);
@@ -194,84 +296,6 @@ export class FolderPage implements OnInit {
     });
   }
 
-  /// When view is destroyed, be sure to .remove() all BackgroundGeolocation
-  /// event-subscriptions.
-  ngOnDestroy() {
-    this.subscriptions.forEach((subscription:Subscription) => {
-      subscription.remove();
-    })
-  }
-
-   // Change plugin state between stationary / tracking
-   onClickChangePace() {
-   // this.isMoving = !this.isMoving;
-    BackgroundGeolocation.changePace(true);
-  }
-
-  // Clear the list of events from ion-list
-  onClickClear() {
-    this.events = [];
-  }
-
-
-  /// @event enabledchange
-  onEnabledChange(enabled:boolean) {
-   // this.isMoving = false;
-    this.addEvent('onEnabledChange', new Date(), {enabled: enabled});
-  }
-
-  /// @event location
-  onLocation(location:Location) {
-    console.log('[event] location: ', location);
-    this.addEvent('onLocation', new Date(location.timestamp), location);
-
-  }
-
-  /// @event motionchange
-  onMotionChange(event:MotionChangeEvent) {
-    console.log('[event] motionchange, isMoving: ', event.isMoving, ', location: ', event.location);
-    this.addEvent('onMotionChange', new Date(event.location.timestamp), event);
-    //this.isMoving = event.isMoving;
-  }
-
-  /// @event activitychange
-  onActivityChange(event:MotionActivityEvent) {
-    console.log('[event] activitychange: ', event);
-    this.addEvent('onActivityChange', new Date(), event);
-  }
-
-  /// @event geofence
-  onGeofence(event:GeofenceEvent) {
-    console.log('[event] geofence: ', event);
-    this.addEvent('onGeofence', new Date(event.location.timestamp), event);
-  }
-  /// @event http
-  onHttp(response:HttpEvent) {
-    console.log('[event] http: ', response);
-    this.addEvent('onHttp', new Date(), response);
-  }
-
-  /// @event providerchange
-  onProviderChange(provider:ProviderChangeEvent) {
-    console.log('[event] providerchange', provider);
-    this.addEvent('onProviderChange', new Date(), provider);
-  }
-
-  /// @event powersavechange
-  onPowerSaveChange(isPowerSaveEnabled:boolean) {
-    console.log('[event] powersavechange', isPowerSaveEnabled);
-    this.addEvent('onPowerSaveChange', new Date(), {isPowerSaveEnabled: isPowerSaveEnabled});
-  }
-  /// @event connectivitychange
-  onConnectivityChange(event:ConnectivityChangeEvent) {
-    console.log('[event] connectivitychange connected? ', event.connected);
-    this.addEvent('onConnectivityChange', new Date(), event);
-  }
-
-  /// @event authorization
-  onAuthorization(event:AuthorizationEvent) {
-    console.log('[event] authorization: ', event);
-  }
 
   /// Add a record to ion-list
   private addEvent(name, date, event) {
@@ -285,6 +309,7 @@ export class FolderPage implements OnInit {
       });
     })
   }
+
   startService() {
     // Notification importance is optional, the default is 1 - Low (no sound or vibration)
     this.foregroundService.start('GPS Running', 'Background Service', 'drawable/fsicon');
@@ -293,12 +318,23 @@ export class FolderPage implements OnInit {
 
   getBackgroundLocationWhenAppInActive(){
     let self = this;
+    //{"is_moving":false,"uuid":"500e6ab7-1e24-42ef-91f8-a1266365f77e","timestamp":"2022-01-07T05:50:16.282Z",
+    // "odometer":0,"coords":{"latitude":30.9355295,"longitude":75.1904869,"accuracy":211.7,"speed":0.01,"speed_accuracy":20,
+    // "heading":359.51,"heading_accuracy":10,"altitude":182,"altitude_accuracy":100},
+    // "activity":{"type":"still","confidence":100},"battery":{"is_charging":true,"level":0.63},"extras":{}}
     BackgroundGeolocation.getCurrentPosition({}).then((resp:any) => {
-      console.log(resp);
-      self.CallAjax(resp)
-      .subscribe((response) => {
-        console.log(response);
-      });
+      let dict = {
+        latitude: resp.coords.latitude,
+        longitude: resp.coords.longitude,
+        speed: resp.coords.speed == null ? 0 : resp.coords.speed.toFixed(1),
+        headingDelta: this.calculateHeading(this.lastHeading, resp.coords.heading),
+        actualHeading: resp.coords.heading,
+        time: resp.timestamp,
+        distance: 0,
+        reason: 1//resp.coords.speed <= 1 ? '4' : '3'
+      }
+
+      self.implementConditions(dict, resp, 'bg');
     });
   }
   
@@ -334,7 +370,7 @@ export class FolderPage implements OnInit {
         distance: 0,
         reason: reasonCode
       }
-      this.implementConditions(dict, resp);
+      this.implementConditions(dict, resp, 'fg');
     }).catch((error) => {
        console.log('Error getting location', error);
     });
@@ -356,12 +392,16 @@ export class FolderPage implements OnInit {
         reason: 1//resp.coords.speed <= 1 ? '4' : '3'
       }
 
-      this.implementConditions(dict, resp);
+      this.implementConditions(dict, resp, 'fg');
     });
   }
 
   //calculate rest of the conditions & cases on the data got from service
-  implementConditions(dict, resp){
+  implementConditions(dict, resp, mode){
+    //{"is_moving":false,"uuid":"500e6ab7-1e24-42ef-91f8-a1266365f77e","timestamp":"2022-01-07T05:50:16.282Z",
+    // "odometer":0,"coords":{"latitude":30.9355295,"longitude":75.1904869,"accuracy":211.7,"speed":0.01,"speed_accuracy":20,
+    // "heading":359.51,"heading_accuracy":10,"altitude":182,"altitude_accuracy":100},
+    // "activity":{"type":"still","confidence":100},"battery":{"is_charging":true,"level":0.63},"extras":{}}
 
     if(!this.IsFirstRecords && this.isTimeUpdate == false){
 
@@ -382,30 +422,30 @@ export class FolderPage implements OnInit {
         dict.reason  = 5;
       }
 
-      if(dict.reason != 4) { this.timeoutFunction(); }
+     if(dict.reason != 4) { this.timeoutFunction(); }
       //console.log(dict)
       //if reason 1 (location) don't need to track events & data
       if(dict.reason == 1) { return}; 
-      this.generateFinalPacket(dict);
+      this.generateFinalPacket(dict, mode);
 
     }else if(this.isTimeUpdate == true){
       dict.reason  = 7;
       this.isTimeUpdate = false;
       clearTimeout(this.timeoutID);
-      this.generateFinalPacket(dict);
+      this.generateFinalPacket(dict, mode);
       this.timeoutFunction();
     }else{
       this.lastLatitude = resp.coords.latitude;
       this.lastLongitude = resp.coords.longitude;
       this.lastHeading = resp.coords.heading;
       this.IsFirstRecords = false;
-      this.generateFinalPacket(dict);
+      this.generateFinalPacket(dict, mode);
       this.timeoutFunction();
     }
   };
 
 
-  generateFinalPacket(dict){
+  generateFinalPacket(dict, mode){
  
     let finalDict = {
       timestamp: dict.time,
@@ -429,7 +469,11 @@ export class FolderPage implements OnInit {
     this.lastSpeed = dict.speed;
     this.lastLatitude = dict.latitude;
     this.lastLongitude = dict.longitude;
-    
+    // if(mode == 'bg'){
+    //   //&& !this.networkStatus
+    //   this.backgroundLocationArray.push(finalDict);
+    //   return;
+    // }
     this.CallAjax(finalDict)
     .subscribe((response) => {
       console.log(response);

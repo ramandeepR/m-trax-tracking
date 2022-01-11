@@ -3,7 +3,7 @@ import { SQLite, SQLiteObject } from '@awesome-cordova-plugins/sqlite/ngx';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
-import BackgroundGeolocation from "@transistorsoft/capacitor-background-geolocation";
+import BackgroundGeolocation from "cordova-background-geolocation-lt";
 import { BackgroundMode } from '@awesome-cordova-plugins/background-mode/ngx';
 import { BatteryStatus } from '@awesome-cordova-plugins/battery-status/ngx';
 import { BrowserModule } from '@angular/platform-browser';
